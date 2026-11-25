@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Draw the make.fun news-image entry: a 1024x1024 broadsheet front page.
 
+Covers the world news of Wednesday 25 November 2026.
+
 Fully deterministic: fixed layout, fixed fonts, no randomness, no clock reads.
 Output: entry.png (RGB, 1024x1024) in the repository root.
 """
@@ -14,18 +16,20 @@ M = 44
 CONTENT_W = W - 2 * M
 
 PAPER = (250, 247, 239)
-INK = (27, 25, 23)
-GREY = (90, 86, 79)
-LIGHT = (168, 162, 151)
-HAIR = (196, 190, 178)
-RED = (155, 29, 37)
-TINT = (242, 237, 226)
+INK = (26, 24, 21)
+GREY = (92, 88, 80)
+LIGHT = (172, 166, 154)
+HAIR = (203, 197, 185)
+RED = (158, 32, 38)
+TINT = (243, 238, 227)
+WHITE = (252, 250, 245)
 
-SERIF_BOLD = "/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf"
-SERIF = "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf"
-SERIF_IT = "/usr/share/fonts/truetype/liberation/LiberationSerif-Italic.ttf"
-SANS_BOLD = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
-SANS = "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
+FONT_DIR = "/usr/share/fonts/truetype/liberation/"
+SERIF_BOLD = FONT_DIR + "LiberationSerif-Bold.ttf"
+SERIF = FONT_DIR + "LiberationSerif-Regular.ttf"
+SERIF_IT = FONT_DIR + "LiberationSerif-Italic.ttf"
+SANS_BOLD = FONT_DIR + "LiberationSans-Bold.ttf"
+SANS = FONT_DIR + "LiberationSans-Regular.ttf"
 
 _fonts = {}
 
@@ -77,20 +81,18 @@ def wrap(draw, text, fnt, max_w):
 
 def fit_headline(draw, text, path, max_w, max_lines, hi, lo):
     """Largest size whose wrapped headline fits the width in max_lines."""
-    size = lo
-    for candidate in range(hi, lo - 1, -2):
-        fnt = F(path, candidate)
-        lines = wrap(draw, text, fnt, max_w)
-        if len(lines) <= max_lines and all(text_w(draw, ln, fnt) <= max_w for ln in lines):
-            size = candidate
-            break
-    else:
+    for size in range(hi, lo - 1, -1):
         fnt = F(path, size)
         lines = wrap(draw, text, fnt, max_w)
-        while len(lines) > max_lines and size > 8:
-            size -= 2
-            fnt = F(path, size)
-            lines = wrap(draw, text, fnt, max_w)
+        if len(lines) <= max_lines:
+            return fnt, lines, size
+    size = lo
+    fnt = F(path, size)
+    lines = wrap(draw, text, fnt, max_w)
+    while len(lines) > max_lines and size > 8:
+        size -= 1
+        fnt = F(path, size)
+        lines = wrap(draw, text, fnt, max_w)
     return fnt, lines, size
 
 
@@ -103,187 +105,178 @@ def main():
     d = ImageDraw.Draw(img)
 
     # Page frame ------------------------------------------------------------
-    d.rectangle([19, 19, W - 20, H - 20], outline=HAIR, width=1)
+    d.rectangle([16, 16, W - 17, H - 17], outline=HAIR, width=1)
 
     # Masthead --------------------------------------------------------------
-    kicker_f = F(SANS_BOLD, 13)
-    draw_tracked_center(d, 38, "THE GLOBAL EDITION  ·  SIX REGIONS, ONE PAGE", kicker_f, RED, 2.4)
-
-    mast_f, mast_lines, mast_size = fit_headline(
-        d, "WORLD NEWS IN ONE IMAGE", SERIF_BOLD, CONTENT_W - 20, 1, 62, 40
+    kicker_f = F(SANS_BOLD, 11)
+    draw_tracked_center(
+        d, 29, "THE GLOBAL EDITION  ·  WEDNESDAY, NOVEMBER 25, 2026", kicker_f, RED, 2.2
     )
-    mast_y = 60
-    for line in mast_lines:
-        d.text(((W - text_w(d, line, mast_f)) / 2, mast_y), line, font=mast_f, fill=INK)
 
-    rule(d, M, 138, W - M, INK, 2)
+    mast_f = F(SERIF_BOLD, 100)
+    mast = "THE WORLD"
+    d.text(((W - text_w(d, mast, mast_f)) / 2, 34), mast, font=mast_f, fill=INK)
+    rule(d, M, 132, W - M, INK, 2)
 
     # Dateline strip --------------------------------------------------------
-    d.rectangle([M, 145, W - M, 184], fill=TINT)
-    date_f = F(SANS_BOLD, 25)
-    d.text((M + 10, 152), "TUESDAY 24 NOVEMBER 2026", font=date_f, fill=INK)
+    d.rectangle([M, 140, W - M, 182], fill=TINT)
+    date_f = F(SANS_BOLD, 26)
+    d.text((M + 12, 147), "WEDNESDAY 25 NOVEMBER 2026", font=date_f, fill=INK)
 
-    meta_f = F(SANS, 12)
-    meta = "VOL. 1  ·  NO. 328  ·  EVENING FINAL"
-    meta_x = W - M - 10 - tracked_w(d, meta, meta_f, 1.0)
-    draw_tracked(d, meta_x, 160, meta, meta_f, GREY, 1.0)
+    box_x1 = W - M - 4
+    box_x0 = box_x1 - 164
+    d.rectangle([box_x0, 143, box_x1, 179], fill=RED)
+    banner_f = F(SANS_BOLD, 22)
+    banner = "25 NOV 2026"
+    draw_tracked(
+        d,
+        box_x0 + (box_x1 - box_x0 - tracked_w(d, banner, banner_f, 1.5)) / 2,
+        150,
+        banner,
+        banner_f,
+        WHITE,
+        1.5,
+    )
 
-    rule(d, M, 184, W - M, INK, 3)
-    rule(d, M, 189, W - M, HAIR, 1)
+    meta_f = F(SANS, 11)
+    meta = "VOL. 1  ·  NO. 336"
+    draw_tracked(d, box_x0 - 12 - tracked_w(d, meta, meta_f, 0.8), 153,
+                 meta, meta_f, GREY, 0.8)
+    rule(d, M, 182, W - M, INK, 2)
+    rule(d, M, 187, W - M, HAIR, 1)
 
     # Lead story ------------------------------------------------------------
-    y = 206
-    lab_f = F(SANS_BOLD, 12)
-    draw_tracked(d, M + 1, y, "LEAD STORY  ·  STRAIT OF HORMUZ", lab_f, RED, 1.8)
-    y = 228
+    lab_f = F(SANS_BOLD, 11)
+    draw_tracked(d, M, 201, "LEAD STORY  ·  WASHINGTON  ·  TRADE", lab_f, RED, 1.6)
 
     lead_f, lead_lines, lead_size = fit_headline(
-        d, "THREE TANKERS ABLAZE AS IRAN SHUTS THE STRAIT OF HORMUZ",
-        SERIF_BOLD, CONTENT_W, 3, 54, 38
+        d,
+        "US IMPOSES SWEEPING NEW TARIFFS ON CHINA AND DOZENS OF TRADING PARTNERS",
+        SERIF_BOLD,
+        CONTENT_W,
+        2,
+        44,
+        32,
     )
-    lead_lh = int(lead_size * 1.06)
+    y = 219
+    lead_lh = int(lead_size * 1.08)
     for line in lead_lines:
-        d.text(((W - text_w(d, line, lead_f)) / 2, y), line, font=lead_f, fill=INK)
+        d.text((M, y), line, font=lead_f, fill=INK)
         y += lead_lh
 
-    y += 4
-    deck_f = F(SERIF_IT, 18)
+    y += 6
+    deck_f = F(SERIF_IT, 17)
     deck_text = (
-        "Mines hit three escorted tankers in the Gulf; Iran's army chief orders the "
-        "waterway closed until Tehran's terms are met. Brent crude near $99."
+        "The new duties cover China and a long list of other trading partners. "
+        "The move sharply widens US tariffs on imported goods."
     )
-    deck_cols_w = 624
-    for line in wrap(d, deck_text, deck_f, deck_cols_w - 8):
-        d.text(((W - text_w(d, line, deck_f)) / 2, y), line, font=deck_f, fill=GREY)
-        y += 23
-    y += 8
+    for line in wrap(d, deck_text, deck_f, 600):
+        d.text((M, y), line, font=deck_f, fill=GREY)
+        y += 21
 
-    # Lead body: two columns, plus a fact box at right.
-    body_f = F(SERIF, 14)
-    body_lh = 18
-    col_w = 292
-    col_x = [M, M + col_w + 26]
-    body_cols = [
-        "Three oil tankers struck naval mines and caught fire in the Strait of "
-        "Hormuz despite a US escort, Iran's Revolutionary Guard Navy said on "
-        "Tuesday, in an attack on shipping inside the world's busiest oil chokepoint.",
-        "Iran's army chief ordered the strait to stay closed until Iran's "
-        "conditions are met, leaving the Gulf waterway shut to commercial traffic "
-        "and exposing global energy supplies to a prolonged interruption.",
-    ]
-    body_top = y
-    for cx, text in zip(col_x, body_cols):
-        ly = body_top
-        for line in wrap(d, text, body_f, col_w):
-            d.text((cx, ly), line, font=body_f, fill=INK)
-            ly += body_lh
-    body_bottom = max(
-        body_top + len(wrap(d, t, body_f, col_w)) * body_lh for t in body_cols
-    )
+    lead_bottom = y + 6
+    rule(d, M, lead_bottom, W - M, INK, 2)
 
-    # Fact box
-    box_x0, box_x1 = 700, W - M
-    box_y0, box_y1 = body_top - 6, body_bottom + 2
-    d.rectangle([box_x0, box_y0, box_x1, box_y1], fill=TINT)
-    d.rectangle([box_x0, box_y0, box_x1, box_y1], outline=LIGHT, width=1)
-    d.rectangle([box_x0, box_y0, box_x0 + 4, box_y1], fill=RED)
-    bh_f = F(SANS_BOLD, 10)
-    draw_tracked(d, box_x0 + 16, box_y0 + 10, "AT A GLANCE", bh_f, RED, 1.6)
-    items = [
-        ("3", "tankers mined and ablaze in the strait"),
-        ("SHUT", "until Iran's conditions are met"),
-        ("$99", "Brent crude, trading near"),
-    ]
-    num_f = F(SERIF_BOLD, 17)
-    label_w = max(text_w(d, num, num_f) for num, _ in items)
-    tx = box_x0 + 16 + label_w + 10
-    t_f = F(SANS, 11)
-    iy = box_y0 + 28
-    for num, txt in items:
-        d.text((box_x0 + 16, iy - 2), num, font=num_f, fill=INK)
-        for line in wrap(d, txt, t_f, box_x1 - 12 - tx):
-            d.text((tx, iy), line, font=t_f, fill=INK)
-            iy += 13
-        iy += 9
-
-    # Close the lead block
-    lead_bottom = max(body_bottom, iy) + 12
-    rule(d, M, lead_bottom, W - M, INK, 3)
-
-    # Secondary stories -----------------------------------------------------
+    # Story grid: 2 columns x 3 rows ---------------------------------------
     stories = [
-        ("RUSSIA–UKRAINE",
-         "RUSSIA AND UKRAINE CLASH AT UN OVER BLACK SEA ATTACKS",
-         "Zelenskyy presses allies for more air-defence missiles as the EU rolls out a new sanctions package."),
-        ("MIDDLE EAST",
-         "GAZA POLICE POST STRIKE KILLS THREE",
-         "Israeli drone strike hits Khan Younis; rain floods 70,000 tents as senators urge winter supplies. Vance and Rubio meet Qatar's PM on Iran talks."),
-        ("ASIA",
-         "PAKISTANI ASTRONAUT JOINS SHENZHOU-24",
-         "Muhammad Zeeshan Ali becomes the first foreign astronaut on the Tiangong station; launch set for Nov 25."),
-        ("AMERICAS",
-         "CAR BOMB ROCKS COLOMBIAN CITY",
-         "Blast near Meta government headquarters in Villavicencio injures dozens, with no deaths. Trump says China may buy 250 more Boeing jets."),
-        ("TECH / BUSINESS",
-         "NVIDIA REINSTATES JENSEN HUANG AS CEO",
-         "Gold holds above $4,600; FIFA awards the 2031 Women's World Cup to the US, Mexico, Costa Rica and Jamaica, and 2035 to the UK."),
-        ("EUROPE",
-         "SPAIN SETS SNAP ELECTION FOR NOV 29",
-         "Sanchez proposes a tax on fortunes above €100m as voters head to the polls."),
+        ("EUROPE  ·  WAR",
+         "RUSSIA'S OWN FIGURES SHOW NEARLY 500,000 LOST IN UKRAINE WAR",
+         "Moscow's published toll nears half a million, as Ukraine says five Russian jets were hit in an airfield strike."),
+        ("MIDDLE EAST  ·  GAZA",
+         "ISRAELI STRIKE KILLS HAMAS SECURITY CHIEF AND FAMILY IN GAZA CITY",
+         "The senior official died with relatives in the strike, Palestinian officials and medics said."),
+        ("TECHNOLOGY  ·  LAW",
+         "US COURT FINDS HUAWEI GUILTY OF STEALING TRADE SECRETS",
+         "The verdict in a long-running case covers technology taken from US firms."),
+        ("AMERICAS  ·  COLOMBIA",
+         "POLICE STORM SIEGE AND FREE ALL 76 HOSTAGES AFTER 17 HOURS",
+         "Police ended the supermarket siege and freed every hostage after 17 hours."),
+        ("ASIA  ·  SPACE",
+         "CHINA LAUNCHES MISSION WITH FIRST PAKISTANI ASTRONAUT ABOARD",
+         "The Chinese crewed flight carries Pakistan's first astronaut, a landmark for the country's space programme."),
+        ("AFRICA  ·  SOUTH AFRICA",
+         "COURT LIFTS IMPEACHMENT THREAT AGAINST PRESIDENT RAMAPHOSA",
+         "The court rejected the move tied to the farmgate affair, easing pressure on the president."),
     ]
 
-    sec_top = lead_bottom + 16
-    sec_bottom = 962
-    col_gap = 36
-    s_col_w = (CONTENT_W - col_gap) // 2
-    s_x = [M, M + s_col_w + col_gap]
-
-    d.rectangle([M + s_col_w + col_gap // 2 - 1, sec_top, M + s_col_w + col_gap // 2, sec_bottom], fill=HAIR)
-
+    grid_top = lead_bottom + 12
+    grid_bottom = 848
+    col_gap = 38
+    col_w = (CONTENT_W - col_gap) // 2
+    col_x = [M, M + col_w + col_gap]
     rows = 3
-    row_h = (sec_bottom - sec_top) // rows
-    s_lab_f = F(SANS_BOLD, 11)
-    s_head_f = F(SERIF_BOLD, 18)
-    s_deck_f = F(SERIF, 14)
-    s_head_lh = 22
-    s_deck_lh = 17
+    row_h = (grid_bottom - grid_top) // rows
 
-    for idx, (label, headline, deck) in enumerate(stories):
+    s_lab_f = F(SANS_BOLD, 11)
+    s_deck_f = F(SERIF, 15)
+
+    for idx, (label, headline, deck_text) in enumerate(stories):
         col = idx % 2
         row = idx // 2
-        x = s_x[col]
-        y = sec_top + row * row_h
+        x = col_x[col]
+        top = grid_top + row * row_h
+
+        if row > 0:
+            rule(d, M, top - 7, W - M, HAIR, 1)
+        if col > 0:
+            d.rectangle([M + col_w + col_gap // 2 - 1, top, M + col_w + col_gap // 2, top + row_h - 14], fill=HAIR)
+
+        h_f, h_lines, h_size = fit_headline(
+            d, headline, SERIF_BOLD, col_w, 2, 24, 17
+        )
+        h_lh = int(h_size * 1.12)
+        body_lines = wrap(d, deck_text, s_deck_f, col_w)
+        block_h = 18 + len(h_lines) * h_lh + 7 + len(body_lines) * 18
+        y = top + max(2, (row_h - block_h) // 2 - 4)
 
         draw_tracked(d, x, y, label, s_lab_f, RED, 1.5)
         y += 18
 
-        lines = wrap(d, headline, s_head_f, s_col_w)
-        if len(lines) > 2:
-            hf, lines, _ = fit_headline(d, headline, SERIF_BOLD, s_col_w, 2, 18, 13)
-        else:
-            hf = s_head_f
-        for line in lines:
-            d.text((x, y), line, font=hf, fill=INK)
-            y += s_head_lh
-        y += 5
+        for line in h_lines:
+            d.text((x, y), line, font=h_f, fill=INK)
+            y += h_lh
+        y += 7
 
-        df = s_deck_f
-        dlines = wrap(d, deck, df, s_col_w)
-        if len(dlines) > 3:
-            df = F(SERIF, 13)
-            dlines = wrap(d, deck, df, s_col_w)
-        for line in dlines:
-            d.text((x, y), line, font=df, fill=GREY)
-            y += s_deck_lh
+        for line in body_lines:
+            d.text((x, y), line, font=s_deck_f, fill=GREY)
+            y += 18
 
-        if row > 0:
-            rule(d, x, sec_top + row * row_h - 10, x + s_col_w, HAIR, 1)
+    # Bottom briefs strip ---------------------------------------------------
+    strip_top = 860
+    rule(d, M, strip_top, W - M, INK, 2)
+
+    brief_f = F(SANS_BOLD, 9)
+    draw_tracked(d, M, strip_top + 7, "ALSO ON 25 NOVEMBER 2026", brief_f, RED, 1.6)
+
+    briefs = [
+        ("SCIENCE", "Asteroid-defence test images reveal a stadium-sized impact crater."),
+        ("MARKETS", "US stocks fall further on renewed fears over artificial intelligence."),
+        ("DIPLOMACY", "A sanctions feud with North Korea closes Switzerland's Pyongyang office."),
+        ("SPACE", "A Canadian astronaut welcomes a baby born while she was aboard the space station."),
+    ]
+    b_gap = 22
+    b_w = (CONTENT_W - 3 * b_gap) // 4
+    b_lab_f = F(SANS_BOLD, 9)
+    b_f = F(SERIF, 13)
+
+    for i, (label, text) in enumerate(briefs):
+        x = M + i * (b_w + b_gap)
+        if i > 0:
+            d.rectangle([x - b_gap // 2, strip_top + 6, x - b_gap // 2, 956], fill=HAIR)
+        draw_tracked(d, x, strip_top + 25, label, b_lab_f, RED, 1.4)
+        by = strip_top + 39
+        for line in wrap(d, text, b_f, b_w):
+            d.text((x, by), line, font=b_f, fill=INK)
+            by += 15
 
     # Footer ----------------------------------------------------------------
-    rule(d, M, 972, W - M, INK, 2)
+    rule(d, M, 966, W - M, INK, 2)
     foot_f = F(SANS_BOLD, 9)
-    draw_tracked_center(d, 980, "WORLD NEWS IN ONE IMAGE  ·  TUESDAY 24 NOVEMBER 2026  ·  PAGE 1",
-                        foot_f, GREY, 1.6)
+    draw_tracked_center(
+        d, 975,
+        "THE WORLD  ·  WEDNESDAY 25 NOVEMBER 2026  ·  PAGE 1",
+        foot_f, GREY, 1.6,
+    )
 
     out = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "entry.png")
     img.save(out, "PNG", optimize=True)
